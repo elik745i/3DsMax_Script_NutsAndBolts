@@ -446,7 +446,7 @@ fn createbolt boltpos wcol =
 	turns = (threadht/threadpitch)+1
 	density = 360/segs
 	local tipRunoutAngle = 360.0  -- fan thread into the tip over the last full turn
-	local topRunoutAngle = 360.0  -- fan thread out into the neck over the last full turn
+	local topRunoutAngle = 180.0  -- flatten minor diameter into the neck over the last half turn
 	local tipOffset = r2 * 0.08   -- slightly deeper flat cut based on bolt OD
 
 	ep = editable_mesh name:(uniquename "Thread")
@@ -461,12 +461,12 @@ fn createbolt boltpos wcol =
 		local tipFactor = (t + tipRunoutAngle) / tipRunoutAngle
 		if tipFactor < 0.0 then tipFactor = 0.0
 		if tipFactor > 1.0 then tipFactor = 1.0
-		-- Top runout amount over the last full turn. Accelerate the minor diameter fill so the
-		-- grooves reach the neck cylinder sooner and the shoulder disappears.
+		-- Top runout amount over the last half turn. Flatten the minor diameter quickly so the
+		-- thread root blends into the neck cylinder right before the exit.
 		local endFactor = ((turns*360.0) - t) / topRunoutAngle
 		if endFactor < 0.0 then endFactor = 0.0
 		if endFactor > 1.0 then endFactor = 1.0
-		local topFill = 1.0 - (endFactor * endFactor)
+		local topFill = 1.0 - (endFactor * endFactor * endFactor)
 		curR2 = r1 + (r2 - r1) * tipFactor   -- bottom tip runout only; crest stays full at top
 
 		-- Clamp all vertex Z to [-tipOffset, threadht]. Negative Z is the bottom cut/chamfer zone.
