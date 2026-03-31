@@ -423,19 +423,18 @@ fn createbolt boltpos wcol =
 	ep = editable_mesh name:(uniquename "Thread")
 	convertTo ep (Editable_Poly)
 
-	-- Start one full extra turn before z=0.  All vertices in that extra turn are clamped to z=0
-	-- and share identical XY positions with the t=0 vertices (cos/sin repeat every 360 deg).
-	-- The weld step folds them into a single flat ring so Cap_Holes closes a clean flat disk
-	-- at the bolt tip instead of a spiralling mess.
+	-- Start one full extra turn before z=0. Vertices there have crest clamped to r1 (root).
+	-- After welding they collapse into a clean flat ring at r1, z=0 — Cap_Holes fills it
+	-- as a tidy flat end disk matching the shaft diameter.
 	local firstIter = true
 	for t = -360 to turns*360 by density do
 	(
-		-- Taper factor: 0 at bolt tip (z=0), ramps to full depth over first turn.
-		-- Clamp below 0 so the extra bottom turn stays at r2 (no groove at tip).
-		tf = t / taperAngle
-		if tf < 0.0 then tf = 0.0
-		if tf > 1.0 then tf = 1.0
-		curR1 = r2 - (r2 - r1) * tf
+		-- Taper the CREST outward radius: r1 at bolt tip, grows to r2 after one full turn.
+		-- Inner root is always r1 — crest "emerges" from the shaft, giving the chamfered-point look.
+		tapFactor = (t as float) / taperAngle
+		if tapFactor < 0.0 then tapFactor = 0.0
+		if tapFactor > 1.0 then tapFactor = 1.0
+		curR2 = r1 + (r2 - r1) * tapFactor   -- crest starts at root, grows to full depth
 
 		-- Clamp all vertex Z to [0, threadht] for flat matching rings at both ends
 		baseZ = d2*t/360.0
@@ -443,13 +442,13 @@ fn createbolt boltpos wcol =
 		v2z = baseZ+d1 ; if v2z < 0 then v2z = 0 ; if v2z > threadht then v2z = threadht
 		v3z = baseZ+d2 ; if v3z < 0 then v3z = 0 ; if v3z > threadht then v3z = threadht
 
-		x  = curR1 * cos(t)
-		y  = curR1 * sin(t)
+		x  = r1 * cos(t)
+		y  = r1 * sin(t)
 		v1 = ep.createVertex [x, y, v1z]
-		x2 = r2*cos(t)
-		y2 = r2*sin(t)
+		x2 = curR2 * cos(t)
+		y2 = curR2 * sin(t)
 		v2 = ep.createVertex [x2, y2, v2z]
-		v3 = ep.createVertex [curR1*cos(t), curR1*sin(t), v3z]
+		v3 = ep.createVertex [r1 * cos(t), r1 * sin(t), v3z]
 
 		if not firstIter then 
 		(
