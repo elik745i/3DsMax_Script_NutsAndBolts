@@ -156,39 +156,55 @@ fn createmark marktext markdia =
 )
 
 
-fn createnut1 nutpos wcol =
+fn createNutCommon nutpos wcol =
 (
-	--create the nut
-	cy = Cylinder()
+	local cy = Cylinder()
 	cy.radius = (nutdia1/2)
 	cy.height = nutht
 	cy.heightsegs = 1
 	cy.sides = 6
 	cy.smooth = off
-	hscale = nutdia1/100.0
-	
-	pcy = convertToPoly(cy)
-	pcy.EditablePoly.SetSelection #Face #{7..8}
-	pcy.EditablePoly.ConvertSelection #Face #Edge
-	pcy.EditablePoly.chamferEdges (3.0*hscale)
-	pcy.EditablePoly.SetSelection #Edge #{24,30}
-	pcy.EditablePoly.SelectEdgeRing ()
-	pcy.EditablePoly.chamferEdges (11.3*hscale)
-	pcy.EditablePoly.chamferEdges (5.5*hscale)
-	pcy.EditablePoly.SetSelection #Edge #{19..30, 91..102, 104, 111, 114, 117, 120, 123, 127, 130, 133, 136, 147, 152, 157..158, 161, 164, 167, 170, 175..176, 181, 183, 186, 189, 199..222}
-	pcy.EditablePoly.chamferEdges (2.5*hscale)
-	pcy.EditablePoly.SetSelection #Edge #{2, 4, 6, 9, 12, 15}
+	local hscale = nutdia1/100.0
+
+	local pcy = convertToPoly(cy)
+	local topFaces = #{}
+	local bottomFaces = #{}
+	local nf = polyop.getNumFaces pcy
+	for i = 1 to nf do
+	(
+		local fc = polyop.getFaceCenter pcy i
+		if fc.z > (nutht*0.49) then append topFaces i
+		if fc.z < -(nutht*0.49) then append bottomFaces i
+	)
+	local capFaces = topFaces + bottomFaces
+	if capFaces.numberset > 0 then
+	(
+		pcy.EditablePoly.SetSelection #Face capFaces
+		pcy.bevelFaces 0.0 (-20.0*hscale)
+	)
+
+	local cornerBits = #{}
+	local ne = polyop.getNumEdges pcy
+	for i = 1 to ne do
+	(
+		local ev = polyop.getEdgeVerts pcy i
+		local p1 = polyop.getVert pcy ev[1]
+		local p2 = polyop.getVert pcy ev[2]
+		local ra = sqrt(p1.x*p1.x + p1.y*p1.y)
+		local rb = sqrt(p2.x*p2.x + p2.y*p2.y)
+		if ra > (nutdia1/2)*0.92 and rb > (nutdia1/2)*0.92 and abs(p1.z-p2.z) > nutht*0.15 then append cornerBits i
+	)
+	pcy.EditablePoly.SetSelection #Edge cornerBits
 	pcy.EditablePoly.chamferEdges (1.0*hscale)
-	pcy.EditablePoly.SetSelection #Face #{7..8}
-	pcy.bevelFaces 0.0 (-20.0*hscale)
-	facecount = pcy.EditablePoly.getnumfaces()
+
+	local facecount = pcy.EditablePoly.getnumfaces()
 	pcy.EditablePoly.SetSelection #Face #{1..facecount}
 	pcy.autoSmoothThreshold = 25
 	pcy.EditablePoly.autosmooth ()
 
 	if nutsegs<3 then nutsegs = 3
 	if nutsegs>60 then nutsegs = 60
-		
+
 	rem = mod 360 nutsegs
 	if rem>0 then
 	(
@@ -199,48 +215,41 @@ fn createnut1 nutpos wcol =
 			if rem<1 then exit
 		)
 	)
-	
-	-- Direct radii offset for play avoids Push modifier deformation artifacts
-	r2 = (nutdia2/2) + nutplay
-	r1 = r2-nutthreaddepth
-	d1 = nutthreadpitch/2
-	d2 = nutthreadpitch
-	turns = (nutht/nutthreadpitch)+1
-	density = 360/nutsegs
 
-	ep = editable_mesh name:(uniquename "Thread")
+	local cutterR2 = (nutdia2/2) + nutplay
+	local cutterR1 = cutterR2-nutthreaddepth
+	local cutterD1 = nutthreadpitch/2
+	local cutterD2 = nutthreadpitch
+	local cutterTurns = (nutht/nutthreadpitch)+2
+	local cutterDensity = 360/nutsegs
+
+	local ep = editable_mesh name:(uniquename "NutThread")
 	convertTo ep (Editable_Poly)
-
-	for t=0 to turns*360 by density do
+	local firstIter = true
+	for t = -360 to cutterTurns*360 by cutterDensity do
 	(
-		x	=	r1*cos(t)
-		y	=	r1*sin(t)
-		z	=	(d2*t/360.0)
-		v1 = ep.createVertex [x,y,z]
-		x2	=	r2*cos(t)
-		y2	=	r2*sin(t)
-		v2 = ep.createVertex [x2,y2,z+d1]
-		v3 = ep.createVertex [x,y,z+d2]
-		
-		if t>0 then 
+		local baseZ = (cutterD2*t/360.0)
+		local v1 = ep.createVertex [cutterR1*cos(t), cutterR1*sin(t), baseZ]
+		local v2 = ep.createVertex [cutterR2*cos(t), cutterR2*sin(t), baseZ+cutterD1]
+		local v3 = ep.createVertex [cutterR1*cos(t), cutterR1*sin(t), baseZ+cutterD2]
+		if not firstIter then
 		(
 			ep.createFace #(v1,v2,v2-3,v1-3)
 			ep.createFace #(v2,v3,v2-2,v1-2)
 		)
+		firstIter = false
 	)
 
 	ep.weldThreshold = nutweldThreshold
 	polyop.weldVertsByThreshold ep #{1..(getnumverts ep)}
-
 	ep.EditablePoly.SetSelection #Edge #{2}
 	ep.EditablePoly.SelectEdgeLoop ()
 	ep.EditablePoly.chamferEdges nutthreadchamfer
 	addmodifier ep (Cap_Holes ())
 	addmodifier ep (smooth autosmooth:on THRESHOLD:30)
 	convertTo ep PolyMeshObject
-
-	--boolean
 	ep.pos = [0,0,-nutthreadpitch]
+
 	nut = pcy - ep
 	delete ep
 	convertToPoly (nut)
@@ -249,107 +258,17 @@ fn createnut1 nutpos wcol =
 	nut.wirecolor = wcol
 
 	selectMore nut
-	--show all
 	max zoomext sel all
+)
 
+fn createnut1 nutpos wcol =
+(
+	createNutCommon nutpos wcol
 )
 
 fn createnut2 nutpos wcol =
 (
-	--create the nut
-	cy = Cylinder()
-	cy.radius = (nutdia1/2)
-	cy.height = nutht
-	cy.heightsegs = 1
-	cy.sides = 6
-	cy.smooth = off
-	hscale = nutdia1/100.0
-	
-	pcy = convertToPoly(cy)
-	pcy.EditablePoly.SetSelection #Face #{1,8}
-	pcy.EditablePoly.ConvertSelection #Face #Edge
-	pcy.EditablePoly.chamferEdges (3.0*hscale)
-	pcy.EditablePoly.SetSelection #Edge #{24,30}
-	pcy.EditablePoly.SelectEdgeRing ()
-	pcy.EditablePoly.chamferEdges (11.3*hscale)
-	pcy.EditablePoly.chamferEdges (5.5*hscale)
-	pcy.EditablePoly.SetSelection #Edge #{19..30, 91..102, 104, 111, 114, 117, 120, 123, 127, 130, 133, 136, 147, 152, 157..158, 161, 164, 167, 170, 175..176, 181, 183, 186, 189, 199..222}
-	pcy.EditablePoly.chamferEdges (2.5*hscale)
-	pcy.EditablePoly.SetSelection #Edge #{8..9, 11, 13, 15, 17}
-	pcy.EditablePoly.chamferEdges (1.0*hscale)
-	pcy.EditablePoly.SetSelection #Face #{1,8}
-	pcy.bevelFaces 0.0 (-20.0*hscale)
-	facecount = pcy.EditablePoly.getnumfaces()
-	pcy.EditablePoly.SetSelection #Face #{1..facecount}
-	pcy.autoSmoothThreshold = 25
-	pcy.EditablePoly.autosmooth ()
-
-	if nutsegs<3 then nutsegs = 3
-	if nutsegs>60 then nutsegs = 60
-		
-	rem = mod 360 nutsegs
-	if rem>0 then
-	(
-		for i=1 to 360 do
-		(
-			nutsegs = nutsegs-1
-			rem = mod 360 nutsegs
-			if rem<1 then exit
-		)
-	)
-	
-	-- Direct radii offset for play avoids Push modifier deformation artifacts
-	r2 = (nutdia2/2) + nutplay
-	r1 = r2-nutthreaddepth
-	d1 = nutthreadpitch/2
-	d2 = nutthreadpitch
-	turns = (nutht/nutthreadpitch)+1
-	density = 360/nutsegs
-
-	ep = editable_mesh name:(uniquename "Thread")
-	convertTo ep (Editable_Poly)
-
-	for t=0 to turns*360 by density do
-	(
-		x	=	r1*cos(t)
-		y	=	r1*sin(t)
-		z	=	(d2*t/360.0)
-		v1 = ep.createVertex [x,y,z]
-		x2	=	r2*cos(t)
-		y2	=	r2*sin(t)
-		v2 = ep.createVertex [x2,y2,z+d1]
-		v3 = ep.createVertex [x,y,z+d2]
-		
-		if t>0 then 
-		(
-			ep.createFace #(v1,v2,v2-3,v1-3)
-			ep.createFace #(v2,v3,v2-2,v1-2)
-		)
-	)
-
-	ep.weldThreshold = nutweldThreshold
-	polyop.weldVertsByThreshold ep #{1..(getnumverts ep)}
-
-	ep.EditablePoly.SetSelection #Edge #{2}
-	ep.EditablePoly.SelectEdgeLoop ()
-	ep.EditablePoly.chamferEdges nutthreadchamfer
-	addmodifier ep (Cap_Holes ())
-	addmodifier ep (smooth autosmooth:on THRESHOLD:30)
-	convertTo ep PolyMeshObject
-
-	--boolean
-	ep.pos = [0,0,-nutthreadpitch]
-	nut = pcy - ep
-	delete ep
-	convertToPoly (nut)
-	nut.name = uniquename "Nut"
-	move nut nutpos
-	nut.wirecolor = wcol
-
-	selectMore nut
-	--show all
-	max zoomext sel all
-
+	createNutCommon nutpos wcol
 )
 
 fn createbolt boltpos wcol =
