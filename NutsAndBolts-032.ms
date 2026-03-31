@@ -443,11 +443,12 @@ fn createbolt boltpos wcol =
 	r1 = r2-threaddepth
 	d1 = threadpitch/2
 	d2 = threadpitch
-	turns = (threadht/threadpitch)+1
+	turns = (threadht/threadpitch)
 	density = 360/segs
 	local tipRunoutAngle = 360.0  -- fan thread into the tip over the last full turn
 	local topRunoutAngle = 720.0  -- flatten minor diameter into the neck over the last two turns
 	local tipOffset = r2 * 0.08   -- slightly deeper flat cut based on bolt OD
+	local topEndAngle = amax 0.0 ((turns - 1.0) * 360.0)
 
 	ep = editable_mesh name:(uniquename "Thread")
 	convertTo ep (Editable_Poly)
@@ -455,7 +456,7 @@ fn createbolt boltpos wcol =
 	-- Start one full turn before the visible tip. That turn is the bottom runout into the
 	-- small OD-based tip cut, so the thread exit tapers evenly around the circumference.
 	local firstIter = true
-	for t = -360 to turns*360 by density do
+	for t = -360 to topEndAngle by density do
 	(
 		-- Bottom taper: crest grows r1->r2 over the first full turn at the tip.
 		local tipFactor = (t + tipRunoutAngle) / tipRunoutAngle
@@ -463,13 +464,14 @@ fn createbolt boltpos wcol =
 		if tipFactor > 1.0 then tipFactor = 1.0
 		-- Top runout amount over the last two turns. Flatten the minor diameter into the
 		-- neck cylinder over a longer distance until it reaches major diameter at the exit.
-		local endFactor = ((turns*360.0) - t) / topRunoutAngle
+		local endFactor = (topEndAngle - t) / topRunoutAngle
 		if endFactor < 0.0 then endFactor = 0.0
 		if endFactor > 1.0 then endFactor = 1.0
 		local topFill = 1.0 - (endFactor * endFactor * endFactor)
 		curR2 = r1 + (r2 - r1) * tipFactor   -- bottom tip runout only; crest stays full at top
 
-		-- Clamp all vertex Z to [-tipOffset, threadht]. Negative Z is the bottom cut/chamfer zone.
+		-- Clamp all vertex Z to [-tipOffset, threadht]. Bottom is clipped; top now ends at its
+		-- natural helical ring so the minor-diameter points are not pushed upward on Z.
 		baseZ = d2*t/360.0
 		v1z = baseZ    ; if v1z < -tipOffset then v1z = -tipOffset ; if v1z > threadht then v1z = threadht
 		v2z = baseZ+d1 ; if v2z < -tipOffset then v2z = -tipOffset ; if v2z > threadht then v2z = threadht
