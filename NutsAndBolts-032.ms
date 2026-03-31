@@ -443,6 +443,9 @@ fn createbolt boltpos wcol =
 	r1 = r2-threaddepth
 	d1 = threadpitch/2
 	d2 = threadpitch
+	local neckCover = 0.0
+	if nothreadht > 0 then neckCover = amin threadpitch (amax 0.0 (threadht - threadpitch))
+	local neckStartZ = threadht - neckCover
 	turns = (threadht/threadpitch)
 	density = 360/segs
 	local tipRunoutAngle = 360.0  -- fan thread into the tip over the last full turn
@@ -519,12 +522,13 @@ fn createbolt boltpos wcol =
 		local neckBottomRadius = r2 - neckChamfer
 		if neckBottomRadius < r1 then neckBottomRadius = r1
 
-		local neckBase = cone height:neckChamfer radius1:neckBottomRadius radius2:r2 sides:segs smooth:on pos:[0,0,threadht]
+		local neckTotalHt = nothreadht + neckCover
+		local neckBase = cone height:neckChamfer radius1:neckBottomRadius radius2:r2 sides:segs smooth:on pos:[0,0,neckStartZ]
 		ep.EditablePoly.attach neckBase ep
 
-		if nothreadht > neckChamfer then
+		if neckTotalHt > neckChamfer then
 		(
-			local neckStraight = cylinder height:(nothreadht-neckChamfer) radius:r2 heightsegs:1 capsegs:1 sides:segs pos:[0,0,threadht+neckChamfer]
+			local neckStraight = cylinder height:(neckTotalHt-neckChamfer) radius:r2 heightsegs:1 capsegs:1 sides:segs pos:[0,0,neckStartZ+neckChamfer]
 			ep.EditablePoly.attach neckStraight ep
 		)
 		-- Weld the flat thread-top ring to the cylinder bottom ring (they share the same positions)
