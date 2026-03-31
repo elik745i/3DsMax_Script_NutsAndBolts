@@ -461,12 +461,12 @@ fn createbolt boltpos wcol =
 		local tipFactor = (t + tipRunoutAngle) / tipRunoutAngle
 		if tipFactor < 0.0 then tipFactor = 0.0
 		if tipFactor > 1.0 then tipFactor = 1.0
-		-- Top runout amount over the last full turn. At the very top, the thread grooves should
-		-- fill outward into the cylinder instead of shrinking the crest inward.
+		-- Top runout amount over the last full turn. Accelerate the minor diameter fill so the
+		-- grooves reach the neck cylinder sooner and the shoulder disappears.
 		local endFactor = ((turns*360.0) - t) / topRunoutAngle
 		if endFactor < 0.0 then endFactor = 0.0
 		if endFactor > 1.0 then endFactor = 1.0
-		local topFill = 1.0 - endFactor
+		local topFill = 1.0 - (endFactor * endFactor)
 		curR2 = r1 + (r2 - r1) * tipFactor   -- bottom tip runout only; crest stays full at top
 
 		-- Clamp all vertex Z to [-tipOffset, threadht]. Negative Z is the bottom cut/chamfer zone.
