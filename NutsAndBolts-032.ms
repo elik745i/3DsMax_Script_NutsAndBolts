@@ -370,6 +370,7 @@ fn createbolt boltpos wcol =
 	hscale = headdia/100.0
 	
 	pcy = convertToPoly(cy)
+	-- In Max 2016+ caps are at faces 1 (top) and 8 (bottom), matching createnut2 #{1,8}
 	pcy.EditablePoly.SetSelection #Face #{8}
 	pcy.EditablePoly.ConvertSelection #Face #Edge
 	pcy.EditablePoly.chamferEdges (3.0*hscale)
@@ -382,7 +383,7 @@ fn createbolt boltpos wcol =
 	pcy.EditablePoly.chamferEdges (2.8*hscale)
 	pcy.EditablePoly.SetSelection #Edge #{2, 4, 6, 9, 12, 15}
 	pcy.EditablePoly.chamferEdges (1.0*hscale)
-	pcy.EditablePoly.SetSelection #Face #{7}
+	pcy.EditablePoly.SetSelection #Face #{1}
 	pcy.EditablePoly.ConvertSelection #Face #Edge
 	pcy.EditablePoly.chamferEdges (1.0*hscale)
 	facecount = pcy.EditablePoly.getnumfaces()
