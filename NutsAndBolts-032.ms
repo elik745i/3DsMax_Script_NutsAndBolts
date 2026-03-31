@@ -451,16 +451,21 @@ fn createbolt boltpos wcol =
 	ep = editable_mesh name:(uniquename "Thread")
 	convertTo ep (Editable_Poly)
 
-	-- Start one full extra turn before the visible tip. The bottom is clipped to a 45-degree
-	-- chamfer profile, and the thread stays full-depth up to that cut so no plain stud is exposed.
+	-- Start one half-turn before the visible tip. That half-turn is the bottom runout into the
+	-- 45-degree chamfer, so the thread exit tapers evenly around the circumference.
 	local firstIter = true
-	for t = -360 to turns*360 by density do
+	for t = -180 to turns*360 by density do
 	(
+		-- Bottom taper: crest grows r1->r2 over the first half-turn at the tip.
+		local tipFactor = (t + 180.0) / 180.0
+		if tipFactor < 0.0 then tipFactor = 0.0
+		if tipFactor > 1.0 then tipFactor = 1.0
 		-- Top taper: crest shrinks r2->r1 over the last half-turn (dissolves into neck stud)
 		local endFactor = ((turns*360.0) - t) / taperAngle
 		if endFactor < 0.0 then endFactor = 0.0
 		if endFactor > 1.0 then endFactor = 1.0
-		curR2 = r1 + (r2 - r1) * endFactor   -- full-depth thread at tip, tapered runout only at top
+		local combinedFactor = if tipFactor < endFactor then tipFactor else endFactor
+		curR2 = r1 + (r2 - r1) * combinedFactor   -- tapered runout at tip and top
 
 		-- Clamp all vertex Z to [-chamDepth, threadht]. Negative Z is the bottom chamfer zone.
 		baseZ = d2*t/360.0
