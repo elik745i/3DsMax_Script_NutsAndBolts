@@ -417,23 +417,30 @@ fn createbolt boltpos wcol =
 	d2 = threadpitch
 	turns = (threadht/threadpitch)+1
 	density = 360/segs
-	taperAngle = 360.0   -- taper thread depth over the first full turn (bolt tip)
+	taperAngle = 360.0   -- taper thread depth over the first (and last) full turn
 
 	ep = editable_mesh name:(uniquename "Thread")
 	convertTo ep (Editable_Poly)
 
-	for t=0 to turns*360 by density do
+	-- Start one full extra turn before z=0.  All vertices in that extra turn are clamped to z=0
+	-- and share identical XY positions with the t=0 vertices (cos/sin repeat every 360 deg).
+	-- The weld step folds them into a single flat ring so Cap_Holes closes a clean flat disk
+	-- at the bolt tip instead of a spiralling mess.
+	local firstIter = true
+	for t = -360 to turns*360 by density do
 	(
-		-- Taper factor: 0 at the very tip, ramps to 1 over the first turn
+		-- Taper factor: 0 at bolt tip (z=0), ramps to full depth over first turn.
+		-- Clamp below 0 so the extra bottom turn stays at r2 (no groove at tip).
 		tf = t / taperAngle
+		if tf < 0.0 then tf = 0.0
 		if tf > 1.0 then tf = 1.0
-		curR1 = r2 - (r2 - r1) * tf   -- no thread depth at tip, full depth after first turn
+		curR1 = r2 - (r2 - r1) * tf
 
-		-- Clamp all vertex Z to threadht so the helix top ring is flat and aligns with the neck
+		-- Clamp all vertex Z to [0, threadht] for flat matching rings at both ends
 		baseZ = d2*t/360.0
-		v1z = baseZ    ; if v1z > threadht then v1z = threadht
-		v2z = baseZ+d1 ; if v2z > threadht then v2z = threadht
-		v3z = baseZ+d2 ; if v3z > threadht then v3z = threadht
+		v1z = baseZ    ; if v1z < 0 then v1z = 0 ; if v1z > threadht then v1z = threadht
+		v2z = baseZ+d1 ; if v2z < 0 then v2z = 0 ; if v2z > threadht then v2z = threadht
+		v3z = baseZ+d2 ; if v3z < 0 then v3z = 0 ; if v3z > threadht then v3z = threadht
 
 		x  = curR1 * cos(t)
 		y  = curR1 * sin(t)
@@ -443,11 +450,12 @@ fn createbolt boltpos wcol =
 		v2 = ep.createVertex [x2, y2, v2z]
 		v3 = ep.createVertex [curR1*cos(t), curR1*sin(t), v3z]
 
-		if t>0 then 
+		if not firstIter then 
 		(
 			ep.createFace #(v1,v2,v2-3,v1-3)
 			ep.createFace #(v2,v3,v2-2,v1-2)
 		)
+		firstIter = false
 	)
 
 	ep.weldThreshold = weldThreshold
