@@ -165,37 +165,30 @@ fn createNutCommon nutpos wcol =
 	cy.sides = 6
 	cy.smooth = off
 	local hscale = nutdia1/100.0
+	local nutChamfer = 7.5*hscale
 
 	local pcy = convertToPoly(cy)
-	local topFaces = #{}
-	local bottomFaces = #{}
-	local nf = polyop.getNumFaces pcy
-	for i = 1 to nf do
-	(
-		local fc = polyop.getFaceCenter pcy i
-		if fc.z > (nutht*0.49) then append topFaces i
-		if fc.z < -(nutht*0.49) then append bottomFaces i
-	)
-	local capFaces = topFaces + bottomFaces
-	if capFaces.numberset > 0 then
-	(
-		pcy.EditablePoly.SetSelection #Face capFaces
-		pcy.bevelFaces 0.0 (-20.0*hscale)
-	)
-
-	local cornerBits = #{}
 	local ne = polyop.getNumEdges pcy
+	local topBits = #{}
+	local bottomBits = #{}
 	for i = 1 to ne do
 	(
 		local ev = polyop.getEdgeVerts pcy i
 		local p1 = polyop.getVert pcy ev[1]
 		local p2 = polyop.getVert pcy ev[2]
-		local ra = sqrt(p1.x*p1.x + p1.y*p1.y)
-		local rb = sqrt(p2.x*p2.x + p2.y*p2.y)
-		if ra > (nutdia1/2)*0.92 and rb > (nutdia1/2)*0.92 and abs(p1.z-p2.z) > nutht*0.15 then append cornerBits i
+		if p1.z > nutht*0.49 and p2.z > nutht*0.49 then append topBits i
+		if p1.z < -(nutht*0.49) and p2.z < -(nutht*0.49) then append bottomBits i
 	)
-	pcy.EditablePoly.SetSelection #Edge cornerBits
-	pcy.EditablePoly.chamferEdges (1.0*hscale)
+	if topBits.numberset > 0 then
+	(
+		pcy.EditablePoly.SetSelection #Edge topBits
+		pcy.EditablePoly.chamferEdges nutChamfer
+	)
+	if bottomBits.numberset > 0 then
+	(
+		pcy.EditablePoly.SetSelection #Edge bottomBits
+		pcy.EditablePoly.chamferEdges nutChamfer
+	)
 
 	local facecount = pcy.EditablePoly.getnumfaces()
 	pcy.EditablePoly.SetSelection #Face #{1..facecount}
