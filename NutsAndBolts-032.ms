@@ -445,7 +445,7 @@ fn createbolt boltpos wcol =
 	d2 = threadpitch
 	turns = (threadht/threadpitch)+1
 	density = 360/segs
-	taperAngle = 120.0   -- taper thread depth over the first 1/3 turn (short tip stub)
+	taperAngle = 60.0    -- taper thread depth over the first 1/6 turn (short tip stub)
 
 	ep = editable_mesh name:(uniquename "Thread")
 	convertTo ep (Editable_Poly)
@@ -492,28 +492,17 @@ fn createbolt boltpos wcol =
 	ep.EditablePoly.SelectEdgeLoop ()
 	ep.EditablePoly.chamferEdges threadchamfer
 
+	-- Chamfer tip via cone primitive: radius1 (base) = r1*0.7, radius2 (top) = r1 at z=0.
+	-- Top ring matches thread bottom ring exactly -> welds cleanly, no edge-selection artifacts.
+	local tipHeight = threadpitch * 0.4
+	local tipCone = cone radius1:(r1*0.7) radius2:r1 height:tipHeight sides:segs smooth:on pos:[0,0,-tipHeight]
+	ep.EditablePoly.attach tipCone ep
+	ep.weldThreshold = weldThreshold
+	polyop.weldVertsByThreshold ep #{1..(getnumverts ep)}
+
 	addmodifier ep (Cap_Holes ())
 	addmodifier ep (smooth autosmooth:on THRESHOLD:30)
 	convertTo ep PolyMeshObject
-
-	-- Bottom tip chamfer: select the outer perimeter ring at z≈0 and chamfer it
-	local tipBits = #{}
-	local tipNe = polyop.getNumEdges ep
-	for i = 1 to tipNe do
-	(
-		local ev = polyop.getEdgeVerts ep i
-		local p1 = polyop.getVert ep ev[1]
-		local p2 = polyop.getVert ep ev[2]
-		local ra = sqrt(p1.x*p1.x + p1.y*p1.y)
-		local rb = sqrt(p2.x*p2.x + p2.y*p2.y)
-		if ra > r1*0.85 and rb > r1*0.85 and p1.z < threadht*0.02 and p2.z < threadht*0.02 then
-			append tipBits i
-	)
-	if tipBits.count > 0 then
-	(
-		ep.EditablePoly.SetSelection #Edge tipBits
-		ep.EditablePoly.chamferEdges (r1*0.15)
-	)
 	thr = ep
 
 	if nothreadht > 0 then
