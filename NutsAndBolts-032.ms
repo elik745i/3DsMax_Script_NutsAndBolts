@@ -429,14 +429,19 @@ fn createbolt boltpos wcol =
 		if tf > 1.0 then tf = 1.0
 		curR1 = r2 - (r2 - r1) * tf   -- no thread depth at tip, full depth after first turn
 
+		-- Clamp all vertex Z to threadht so the helix top ring is flat and aligns with the neck
+		baseZ = d2*t/360.0
+		v1z = baseZ    ; if v1z > threadht then v1z = threadht
+		v2z = baseZ+d1 ; if v2z > threadht then v2z = threadht
+		v3z = baseZ+d2 ; if v3z > threadht then v3z = threadht
+
 		x  = curR1 * cos(t)
 		y  = curR1 * sin(t)
-		z  = (d2*t/360.0)
-		v1 = ep.createVertex [x,y,z]
+		v1 = ep.createVertex [x, y, v1z]
 		x2 = r2*cos(t)
 		y2 = r2*sin(t)
-		v2 = ep.createVertex [x2,y2,z+d1]
-		v3 = ep.createVertex [curR1*cos(t),curR1*sin(t),z+d2]
+		v2 = ep.createVertex [x2, y2, v2z]
+		v3 = ep.createVertex [curR1*cos(t), curR1*sin(t), v3z]
 
 		if t>0 then 
 		(
@@ -461,6 +466,9 @@ fn createbolt boltpos wcol =
 	(
 		nothread = cylinder height:nothreadht radius:r2 heightsegs:1 capsegs:1 sides:segs pos:[0,0,threadht]
 		ep.EditablePoly.attach nothread ep
+		-- Weld the flat thread-top ring to the cylinder bottom ring (they share the same positions)
+		ep.weldThreshold = weldThreshold
+		polyop.weldVertsByThreshold ep #{1..(getnumverts ep)}
 	)
 
 	--text
