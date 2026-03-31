@@ -370,33 +370,80 @@ fn createbolt boltpos wcol =
 	hscale = headdia/100.0
 	
 	pcy = convertToPoly(cy)
-	-- In Max 2016+ caps are at faces 1 (top) and 8 (bottom), matching createnut2 #{1,8}
-	pcy.EditablePoly.SetSelection #Face #{8}
-	pcy.EditablePoly.ConvertSelection #Face #Edge
-	pcy.EditablePoly.chamferEdges (3.0*hscale)
+	-- All five chamfer passes use purely geometric edge selection so no hard-coded
+	-- face/edge indices are needed. Works regardless of Max version or head diameter.
 
-	pcy.EditablePoly.SetSelection #Edge #{24}
-	pcy.EditablePoly.SelectEdgeRing ()
-	pcy.EditablePoly.chamferEdges (11.3*hscale)
-	pcy.EditablePoly.chamferEdges (6.3*hscale)
-	pcy.EditablePoly.SetSelection #Edge #{19..24, 55..60, 69..70, 75..76, 81..82, 87..88, 93..94, 99..100, 109..120}
-	pcy.EditablePoly.chamferEdges (2.8*hscale)
-	pcy.EditablePoly.SetSelection #Edge #{2, 4, 6, 9, 12, 15}
-	pcy.EditablePoly.chamferEdges (1.0*hscale)
-	-- Select top rim edges geometrically: both vertices at z >= 99% of headht.
-	-- Avoids face-index brittleness — intermediate chamfers renumber faces unpredictably.
-	local topEdgeBits = #{}
-	local nEdges = polyop.getNumEdges pcy
-	for i = 1 to nEdges do
+	-- 1. Bottom rim: horizontal edges at z ≈ 0
+	local btmBits = #{}
+	local ne = polyop.getNumEdges pcy
+	for i = 1 to ne do
 	(
 		local ev = polyop.getEdgeVerts pcy i
-		local p1 = polyop.getVert pcy ev[1]
-		local p2 = polyop.getVert pcy ev[2]
-		if p1.z > (headht * 0.99) and p2.z > (headht * 0.99) then
-			append topEdgeBits i
+		local p1 = polyop.getVert pcy ev[1] ; local p2 = polyop.getVert pcy ev[2]
+		if p1.z < headht*0.02 and p2.z < headht*0.02 then append btmBits i
 	)
-	pcy.EditablePoly.SetSelection #Edge topEdgeBits
+	pcy.EditablePoly.SetSelection #Edge btmBits
+	pcy.EditablePoly.chamferEdges (3.0*hscale)
+
+	-- 2. Waist ring: the outer horizontal ring created by the bottom chamfer.
+	--    It sits just above z=0 at the full circumradius — select it and double-chamfer.
+	local waistBits = #{}
+	ne = polyop.getNumEdges pcy
+	for i = 1 to ne do
+	(
+		local ev = polyop.getEdgeVerts pcy i
+		local p1 = polyop.getVert pcy ev[1] ; local p2 = polyop.getVert pcy ev[2]
+		local ra = sqrt(p1.x*p1.x + p1.y*p1.y)
+		local rb = sqrt(p2.x*p2.x + p2.y*p2.y)
+		if abs(p1.z - p2.z) < headht*0.01 and p1.z > headht*0.02 and p1.z < headht*0.60 \
+			and ra > (headdia/2)*0.90 and rb > (headdia/2)*0.90 then append waistBits i
+	)
+	pcy.EditablePoly.SetSelection #Edge waistBits
+	pcy.EditablePoly.chamferEdges (11.3*hscale)
+	pcy.EditablePoly.chamferEdges (6.3*hscale)
+
+	-- 3. Tighten: all horizontal side-face rings in the lower half (not the cap rims)
+	local tightyBits = #{}
+	ne = polyop.getNumEdges pcy
+	for i = 1 to ne do
+	(
+		local ev = polyop.getEdgeVerts pcy i
+		local p1 = polyop.getVert pcy ev[1] ; local p2 = polyop.getVert pcy ev[2]
+		local ra = sqrt(p1.x*p1.x + p1.y*p1.y)
+		local rb = sqrt(p2.x*p2.x + p2.y*p2.y)
+		if abs(p1.z - p2.z) < headht*0.01 and p1.z > headht*0.01 and p1.z < headht*0.95 \
+			and ra > (headdia/2)*0.50 and rb > (headdia/2)*0.50 then append tightyBits i
+	)
+	pcy.EditablePoly.SetSelection #Edge tightyBits
+	pcy.EditablePoly.chamferEdges (2.8*hscale)
+
+	-- 4. Vertical hex corners: both verts at circumscribed radius, significant z span
+	local corrBits = #{}
+	ne = polyop.getNumEdges pcy
+	for i = 1 to ne do
+	(
+		local ev = polyop.getEdgeVerts pcy i
+		local p1 = polyop.getVert pcy ev[1] ; local p2 = polyop.getVert pcy ev[2]
+		local ra = sqrt(p1.x*p1.x + p1.y*p1.y)
+		local rb = sqrt(p2.x*p2.x + p2.y*p2.y)
+		if ra > (headdia/2)*0.92 and rb > (headdia/2)*0.92 and abs(p1.z - p2.z) > headht*0.15 then
+			append corrBits i
+	)
+	pcy.EditablePoly.SetSelection #Edge corrBits
 	pcy.EditablePoly.chamferEdges (1.0*hscale)
+
+	-- 5. Top rim: both verts at z ≈ headht
+	local topBits = #{}
+	ne = polyop.getNumEdges pcy
+	for i = 1 to ne do
+	(
+		local ev = polyop.getEdgeVerts pcy i
+		local p1 = polyop.getVert pcy ev[1] ; local p2 = polyop.getVert pcy ev[2]
+		if p1.z > headht*0.99 and p2.z > headht*0.99 then append topBits i
+	)
+	pcy.EditablePoly.SetSelection #Edge topBits
+	pcy.EditablePoly.chamferEdges (1.0*hscale)
+
 	facecount = pcy.EditablePoly.getnumfaces()
 	pcy.EditablePoly.SetSelection #Face #{1..facecount}
 	pcy.autoSmoothThreshold = 25
