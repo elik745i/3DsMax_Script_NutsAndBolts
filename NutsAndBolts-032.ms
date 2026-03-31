@@ -514,7 +514,7 @@ fn createbolt boltpos wcol =
 	addModifier triShape (Lathe())
 	triShape.modifiers[#Lathe].segs    = segs
 	triShape.modifiers[#Lathe].degrees = 360
-	triShape.modifiers[#Lathe].axis    = 2    -- 0=X, 1=Y, 2=Z
+	triShape.modifiers[#Lathe].dir     = 2    -- 0=X 1=Y 2=Z
 	triShape.modifiers[#Lathe].weld    = true
 
 	convertTo ep       (Editable_Mesh)
