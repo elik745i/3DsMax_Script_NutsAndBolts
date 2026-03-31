@@ -503,6 +503,28 @@ fn createbolt boltpos wcol =
 	ep.EditablePoly.SelectEdgeLoop ()
 	ep.EditablePoly.chamferEdges threadchamfer
 
+	-- Build the bottom cap manually from the welded bottom ring so the tip face stays perfectly flat
+	-- and doesn't inherit uneven Cap_Holes triangulation artifacts.
+	local bottomPairs = #()
+	for i = 1 to (getnumverts ep) do
+	(
+		local p = polyop.getVert ep i
+		local vr = sqrt(p.x*p.x + p.y*p.y)
+		if abs(p.z + chamDepth) <= (weldThreshold * 10.0 + 0.0001) and vr > 0.0001 then
+			append bottomPairs #(i, atan2 p.y p.x)
+	)
+	if bottomPairs.count > 2 then
+	(
+		qsort bottomPairs (fn a b = a[2] < b[2])
+		local centerVert = ep.createVertex [0,0,-chamDepth]
+		for i = 1 to bottomPairs.count do
+		(
+			local va = bottomPairs[i][1]
+			local vb = bottomPairs[(mod i bottomPairs.count) + 1][1]
+			ep.createFace #(centerVert, vb, va)
+		)
+	)
+
 	addmodifier ep (Cap_Holes ())
 	addmodifier ep (smooth autosmooth:on THRESHOLD:30)
 	convertTo ep PolyMeshObject
