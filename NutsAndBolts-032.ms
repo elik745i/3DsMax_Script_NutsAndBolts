@@ -183,8 +183,30 @@ fn createNutCommon nutpos wcol =
 		pcy.bevelFaces 0.0 (-20.0*hscale)
 	)
 
-	local cornerBits = #{}
+	local topBits = #{}
+	local bottomBits = #{}
 	local ne = polyop.getNumEdges pcy
+	for i = 1 to ne do
+	(
+		local ev = polyop.getEdgeVerts pcy i
+		local p1 = polyop.getVert pcy ev[1]
+		local p2 = polyop.getVert pcy ev[2]
+		if p1.z > nutht*0.45 and p2.z > nutht*0.45 then append topBits i
+		if p1.z < -(nutht*0.45) and p2.z < -(nutht*0.45) then append bottomBits i
+	)
+	if bottomBits.numberset > 0 then
+	(
+		pcy.EditablePoly.SetSelection #Edge bottomBits
+		pcy.EditablePoly.chamferEdges (2.5*hscale)
+	)
+	if topBits.numberset > 0 then
+	(
+		pcy.EditablePoly.SetSelection #Edge topBits
+		pcy.EditablePoly.chamferEdges (2.5*hscale)
+	)
+
+	local cornerBits = #{}
+	ne = polyop.getNumEdges pcy
 	for i = 1 to ne do
 	(
 		local ev = polyop.getEdgeVerts pcy i
@@ -222,16 +244,30 @@ fn createNutCommon nutpos wcol =
 	local cutterD2 = nutthreadpitch
 	local cutterTurns = (nutht/nutthreadpitch)+2
 	local cutterDensity = 360/nutsegs
+	local cutterRunoutAngle = 180.0
 
 	local ep = editable_mesh name:(uniquename "NutThread")
 	convertTo ep (Editable_Poly)
 	local firstIter = true
 	for t = -360 to cutterTurns*360 by cutterDensity do
 	(
+		local startFactor = (t + cutterRunoutAngle) / cutterRunoutAngle
+		if startFactor < 0.0 then startFactor = 0.0
+		if startFactor > 1.0 then startFactor = 1.0
+		local endFactor = ((cutterTurns*360.0) - t) / cutterRunoutAngle
+		if endFactor < 0.0 then endFactor = 0.0
+		if endFactor > 1.0 then endFactor = 1.0
+		local runoutFactor = if startFactor < endFactor then startFactor else endFactor
+		local curCutterR2 = cutterR1 + (cutterR2 - cutterR1) * runoutFactor
+
 		local baseZ = (cutterD2*t/360.0)
-		local v1 = ep.createVertex [cutterR1*cos(t), cutterR1*sin(t), baseZ]
-		local v2 = ep.createVertex [cutterR2*cos(t), cutterR2*sin(t), baseZ+cutterD1]
-		local v3 = ep.createVertex [cutterR1*cos(t), cutterR1*sin(t), baseZ+cutterD2]
+		local v1z = baseZ ; if v1z < 0 then v1z = 0 ; if v1z > nutht then v1z = nutht
+		local v2z = baseZ+cutterD1 ; if v2z < 0 then v2z = 0 ; if v2z > nutht then v2z = nutht
+		local v3z = baseZ+cutterD2 ; if v3z < 0 then v3z = 0 ; if v3z > nutht then v3z = nutht
+
+		local v1 = ep.createVertex [cutterR1*cos(t), cutterR1*sin(t), v1z]
+		local v2 = ep.createVertex [curCutterR2*cos(t), curCutterR2*sin(t), v2z]
+		local v3 = ep.createVertex [cutterR1*cos(t), cutterR1*sin(t), v3z]
 		if not firstIter then
 		(
 			ep.createFace #(v1,v2,v2-3,v1-3)
