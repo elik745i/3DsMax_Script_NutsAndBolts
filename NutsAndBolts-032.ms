@@ -449,6 +449,7 @@ fn createbolt boltpos wcol =
 	local topRunoutAngle = 720.0  -- flatten minor diameter into the neck over the last two turns
 	local tipOffset = r2 * 0.08   -- slightly deeper flat cut based on bolt OD
 	local totalEndAngle = turns * 360.0
+	local effectiveTopEndAngle = amax -360.0 (totalEndAngle - density)
 
 	ep = editable_mesh name:(uniquename "Thread")
 	convertTo ep (Editable_Poly)
@@ -456,7 +457,7 @@ fn createbolt boltpos wcol =
 	-- Start one full turn before the visible tip. That turn is the bottom runout into the
 	-- small OD-based tip cut, so the thread exit tapers evenly around the circumference.
 	local firstIter = true
-	for t = -360 to totalEndAngle by density do
+	for t = -360 to effectiveTopEndAngle by density do
 	(
 		-- Bottom taper: crest grows r1->r2 over the first full turn at the tip.
 		local tipFactor = (t + tipRunoutAngle) / tipRunoutAngle
@@ -464,14 +465,14 @@ fn createbolt boltpos wcol =
 		if tipFactor > 1.0 then tipFactor = 1.0
 		-- Top runout amount over the last two turns. Only the minor diameter fans outward
 		-- to the major diameter; the helical Z positions stay unchanged.
-		local endFactor = (totalEndAngle - t) / topRunoutAngle
+		local endFactor = (effectiveTopEndAngle - t) / topRunoutAngle
 		if endFactor < 0.0 then endFactor = 0.0
 		if endFactor > 1.0 then endFactor = 1.0
 		local topFill = 1.0 - (endFactor * endFactor * endFactor)
 		curR2 = r1 + (r2 - r1) * tipFactor   -- bottom tip runout only; crest stays full at top
 
-		-- Clamp all vertex Z to [-tipOffset, threadht]. Bottom is clipped; top no longer carries
-		-- an extra collapsed turn, so the top runout stays radial-only without stacked rings.
+		-- Clamp all vertex Z to [-tipOffset, threadht]. Bottom is clipped; the last generated top
+		-- ring stops one step early so we don't create duplicate collapsed points at the exit.
 		baseZ = d2*t/360.0
 		v1z = baseZ    ; if v1z < -tipOffset then v1z = -tipOffset ; if v1z > threadht then v1z = threadht
 		v2z = baseZ+d1 ; if v2z < -tipOffset then v2z = -tipOffset ; if v2z > threadht then v2z = threadht
