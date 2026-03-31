@@ -183,30 +183,8 @@ fn createNutCommon nutpos wcol =
 		pcy.bevelFaces 0.0 (-20.0*hscale)
 	)
 
-	local topBits = #{}
-	local bottomBits = #{}
-	local ne = polyop.getNumEdges pcy
-	for i = 1 to ne do
-	(
-		local ev = polyop.getEdgeVerts pcy i
-		local p1 = polyop.getVert pcy ev[1]
-		local p2 = polyop.getVert pcy ev[2]
-		if p1.z > nutht*0.45 and p2.z > nutht*0.45 then append topBits i
-		if p1.z < -(nutht*0.45) and p2.z < -(nutht*0.45) then append bottomBits i
-	)
-	if bottomBits.numberset > 0 then
-	(
-		pcy.EditablePoly.SetSelection #Edge bottomBits
-		pcy.EditablePoly.chamferEdges (2.5*hscale)
-	)
-	if topBits.numberset > 0 then
-	(
-		pcy.EditablePoly.SetSelection #Edge topBits
-		pcy.EditablePoly.chamferEdges (2.5*hscale)
-	)
-
 	local cornerBits = #{}
-	ne = polyop.getNumEdges pcy
+	local ne = polyop.getNumEdges pcy
 	for i = 1 to ne do
 	(
 		local ev = polyop.getEdgeVerts pcy i
