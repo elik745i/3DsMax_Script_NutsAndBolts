@@ -446,7 +446,7 @@ fn createbolt boltpos wcol =
 	turns = (threadht/threadpitch)+1
 	density = 360/segs
 	local tipRunoutAngle = 360.0  -- fan thread into the tip over the last full turn
-	local topRunoutAngle = 180.0  -- flatten minor diameter into the neck over the last half turn
+	local topRunoutAngle = 360.0  -- flatten minor diameter into the neck over the last full turn
 	local tipOffset = r2 * 0.08   -- slightly deeper flat cut based on bolt OD
 
 	ep = editable_mesh name:(uniquename "Thread")
@@ -461,8 +461,8 @@ fn createbolt boltpos wcol =
 		local tipFactor = (t + tipRunoutAngle) / tipRunoutAngle
 		if tipFactor < 0.0 then tipFactor = 0.0
 		if tipFactor > 1.0 then tipFactor = 1.0
-		-- Top runout amount over the last half turn. Flatten the minor diameter quickly so the
-		-- thread root blends into the neck cylinder right before the exit.
+		-- Top runout amount over the last full turn. Flatten the minor diameter into the
+		-- neck cylinder over a longer distance.
 		local endFactor = ((turns*360.0) - t) / topRunoutAngle
 		if endFactor < 0.0 then endFactor = 0.0
 		if endFactor > 1.0 then endFactor = 1.0
