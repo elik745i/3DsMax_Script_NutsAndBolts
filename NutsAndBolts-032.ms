@@ -445,8 +445,8 @@ fn createbolt boltpos wcol =
 	d2 = threadpitch
 	turns = (threadht/threadpitch)+1
 	density = 360/segs
-	taperAngle = 180.0   -- taper thread crest over the last half-turn into the neck
 	local tipRunoutAngle = 360.0  -- fan thread into the tip over the last full turn
+	local topRunoutAngle = 360.0  -- fan thread out into the neck over the last full turn
 	local tipOffset = r2 * 0.08   -- slightly deeper flat cut based on bolt OD
 
 	ep = editable_mesh name:(uniquename "Thread")
@@ -461,8 +461,8 @@ fn createbolt boltpos wcol =
 		local tipFactor = (t + tipRunoutAngle) / tipRunoutAngle
 		if tipFactor < 0.0 then tipFactor = 0.0
 		if tipFactor > 1.0 then tipFactor = 1.0
-		-- Top taper: crest shrinks r2->r1 over the last half-turn (dissolves into neck stud)
-		local endFactor = ((turns*360.0) - t) / taperAngle
+		-- Top taper: crest shrinks r2->r1 over the last full turn (fans out into neck stud)
+		local endFactor = ((turns*360.0) - t) / topRunoutAngle
 		if endFactor < 0.0 then endFactor = 0.0
 		if endFactor > 1.0 then endFactor = 1.0
 		local combinedFactor = if tipFactor < endFactor then tipFactor else endFactor
