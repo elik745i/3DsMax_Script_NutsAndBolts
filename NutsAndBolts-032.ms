@@ -467,7 +467,7 @@ fn createbolt boltpos wcol =
 		local endFactor = (totalEndAngle - t) / topRunoutAngle
 		if endFactor < 0.0 then endFactor = 0.0
 		if endFactor > 1.0 then endFactor = 1.0
-		local topFill = 1.0 - endFactor
+		local topFill = 1.0 - (endFactor * endFactor * endFactor)
 		curR2 = r1 + (r2 - r1) * tipFactor   -- bottom tip runout only; crest stays full at top
 
 		-- Clamp all vertex Z to [-tipOffset, threadht]. Bottom is clipped; top reaches the
