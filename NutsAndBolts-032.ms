@@ -445,7 +445,7 @@ fn createbolt boltpos wcol =
 	d2 = threadpitch
 	turns = (threadht/threadpitch)+1
 	density = 360/segs
-	taperAngle = 30.0    -- taper thread depth over the first 1/12 turn (very short tip stub)
+	taperAngle = 180.0   -- taper thread crest over the first and last half-turn
 
 	ep = editable_mesh name:(uniquename "Thread")
 	convertTo ep (Editable_Poly)
@@ -456,12 +456,16 @@ fn createbolt boltpos wcol =
 	local firstIter = true
 	for t = -360 to turns*360 by density do
 	(
-		-- Taper the CREST outward radius: r1 at bolt tip, grows to r2 after 1/3 turn (120°).
-		-- Shorter taper = shorter smooth stub at the bolt tip.
+		-- Bottom taper: crest grows r1->r2 over the first half-turn
 		tapFactor = (t as float) / taperAngle
 		if tapFactor < 0.0 then tapFactor = 0.0
 		if tapFactor > 1.0 then tapFactor = 1.0
-		curR2 = r1 + (r2 - r1) * tapFactor   -- crest starts at root, grows to full depth
+		-- Top taper: crest shrinks r2->r1 over the last half-turn (dissolves into neck stud)
+		local endFactor = ((turns*360.0) - t) / taperAngle
+		if endFactor < 0.0 then endFactor = 0.0
+		if endFactor > 1.0 then endFactor = 1.0
+		local combinedFactor = if tapFactor < endFactor then tapFactor else endFactor
+		curR2 = r1 + (r2 - r1) * combinedFactor   -- crest emerges and dissolves at both ends
 
 		-- Clamp all vertex Z to [0, threadht] for flat matching rings at both ends
 		baseZ = d2*t/360.0
@@ -494,7 +498,7 @@ fn createbolt boltpos wcol =
 
 	-- Chamfer tip via cone primitive: radius1 (base) = r1*0.7, radius2 (top) = r1 at z=0.
 	-- Top ring matches thread bottom ring exactly -> welds cleanly, no edge-selection artifacts.
-	local tipHeight = threadpitch * 0.2
+	local tipHeight = threadpitch * 0.1
 	local tipCone = cone radius1:(r1*0.85) radius2:r1 height:tipHeight sides:segs smooth:on pos:[0,0,-tipHeight]
 	ep.EditablePoly.attach tipCone ep
 	ep.weldThreshold = weldThreshold
