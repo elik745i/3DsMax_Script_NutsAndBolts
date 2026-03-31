@@ -446,13 +446,13 @@ fn createbolt boltpos wcol =
 	turns = (threadht/threadpitch)+1
 	density = 360/segs
 	taperAngle = 180.0   -- taper thread crest over the last half-turn into the neck
-	local chamDepth = r2 * 0.1
+	local tipOffset = r2 * 0.06   -- small flat cut based on bolt OD
 
 	ep = editable_mesh name:(uniquename "Thread")
 	convertTo ep (Editable_Poly)
 
 	-- Start one half-turn before the visible tip. That half-turn is the bottom runout into the
-	-- 45-degree chamfer, so the thread exit tapers evenly around the circumference.
+	-- small OD-based tip cut, so the thread exit tapers evenly around the circumference.
 	local firstIter = true
 	for t = -180 to turns*360 by density do
 	(
@@ -467,11 +467,11 @@ fn createbolt boltpos wcol =
 		local combinedFactor = if tipFactor < endFactor then tipFactor else endFactor
 		curR2 = r1 + (r2 - r1) * combinedFactor   -- tapered runout at tip and top
 
-		-- Clamp all vertex Z to [-chamDepth, threadht]. Negative Z is the bottom chamfer zone.
+		-- Clamp all vertex Z to [-tipOffset, threadht]. Negative Z is the bottom cut/chamfer zone.
 		baseZ = d2*t/360.0
-		v1z = baseZ    ; if v1z < -chamDepth then v1z = -chamDepth ; if v1z > threadht then v1z = threadht
-		v2z = baseZ+d1 ; if v2z < -chamDepth then v2z = -chamDepth ; if v2z > threadht then v2z = threadht
-		v3z = baseZ+d2 ; if v3z < -chamDepth then v3z = -chamDepth ; if v3z > threadht then v3z = threadht
+		v1z = baseZ    ; if v1z < -tipOffset then v1z = -tipOffset ; if v1z > threadht then v1z = threadht
+		v2z = baseZ+d1 ; if v2z < -tipOffset then v2z = -tipOffset ; if v2z > threadht then v2z = threadht
+		v3z = baseZ+d2 ; if v3z < -tipOffset then v3z = -tipOffset ; if v3z > threadht then v3z = threadht
 
 		local v1r = r1
 		local v2r = curR2
@@ -502,56 +502,6 @@ fn createbolt boltpos wcol =
 	ep.EditablePoly.SetSelection #Edge #{2}
 	ep.EditablePoly.SelectEdgeLoop ()
 	ep.EditablePoly.chamferEdges threadchamfer
-
-	-- Build the bottom cap manually from the actual bottom border so the tip face stays flat
-	-- and doesn't pick up duplicate clipped helix vertices.
-	local bottomPairs = #()
-	local tol = (weldThreshold * 10.0 + 0.0001)
-	for i = 1 to (polyop.getNumEdges ep) do
-	(
-		local edgeFaces = polyop.getEdgeFaces ep i
-		if edgeFaces.numberset == 1 then
-		(
-			local ev = polyop.getEdgeVerts ep i
-			local p1 = polyop.getVert ep ev[1]
-			local p2 = polyop.getVert ep ev[2]
-			if abs(p1.z + chamDepth) <= tol and abs(p2.z + chamDepth) <= tol then
-			(
-				for v in ev do
-				(
-					local alreadyFound = false
-					for pair in bottomPairs while not alreadyFound do if pair[1] == v then alreadyFound = true
-					if not alreadyFound then
-					(
-						local p = polyop.getVert ep v
-						append bottomPairs #(v, atan2 p.y p.x)
-					)
-				)
-			)
-		)
-	)
-	if bottomPairs.count > 2 then
-	(
-		for i = 1 to (bottomPairs.count - 1) do
-		(
-			for j = i + 1 to bottomPairs.count do
-			(
-				if bottomPairs[j][2] < bottomPairs[i][2] then
-				(
-					local tmpPair = bottomPairs[i]
-					bottomPairs[i] = bottomPairs[j]
-					bottomPairs[j] = tmpPair
-				)
-			)
-		)
-		local centerVert = ep.createVertex [0,0,-chamDepth]
-		for i = 1 to bottomPairs.count do
-		(
-			local va = bottomPairs[i][1]
-			local vb = bottomPairs[(mod i bottomPairs.count) + 1][1]
-			ep.createFace #(centerVert, vb, va)
-		)
-	)
 
 	addmodifier ep (Cap_Holes ())
 	addmodifier ep (smooth autosmooth:on THRESHOLD:30)
