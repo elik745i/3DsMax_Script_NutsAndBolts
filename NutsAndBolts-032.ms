@@ -523,12 +523,13 @@ fn createbolt boltpos wcol =
 		if neckBottomRadius < r1 then neckBottomRadius = r1
 
 		local neckTotalHt = nothreadht + neckCover
-		local neckBase = cone height:neckChamfer radius1:neckBottomRadius radius2:r2 sides:segs smooth:on pos:[0,0,neckStartZ]
+		local neckTaperStartZ = neckStartZ - neckChamfer
+		local neckBase = cone height:neckChamfer radius1:neckBottomRadius radius2:r2 sides:segs smooth:on pos:[0,0,neckTaperStartZ]
 		ep.EditablePoly.attach neckBase ep
 
-		if neckTotalHt > neckChamfer then
+		if neckTotalHt > 0 then
 		(
-			local neckStraight = cylinder height:(neckTotalHt-neckChamfer) radius:r2 heightsegs:1 capsegs:1 sides:segs pos:[0,0,neckStartZ+neckChamfer]
+			local neckStraight = cylinder height:neckTotalHt radius:r2 heightsegs:1 capsegs:1 sides:segs pos:[0,0,neckStartZ]
 			ep.EditablePoly.attach neckStraight ep
 		)
 		-- Weld the flat thread-top ring to the cylinder bottom ring (they share the same positions)
