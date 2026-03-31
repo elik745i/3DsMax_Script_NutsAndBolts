@@ -503,24 +503,14 @@ fn createbolt boltpos wcol =
 	-- Right angle sits at [0,0,0] (center-bottom of bolt).
 	-- One leg goes radially outward to [r1,0,0]; one leg goes axially down to [0,0,-r1].
 	-- Lathing this 360° around Z produces a clean cone; subtracting it gives a 45-deg chamfered tip.
-	local triShape = splineShape name:(uniquename "TipCutter")
-	addNewSpline triShape
-	addKnot triShape 1 #corner #line [0,  0,  0]
-	addKnot triShape 1 #corner #line [r1, 0,  0]
-	addKnot triShape 1 #corner #line [0,  0, -r1]
-	close triShape 1
-	updateShape triShape
-
-	addModifier triShape (Lathe())
-	triShape.modifiers[#Lathe].segs    = segs
-	triShape.modifiers[#Lathe].degrees = 360
-	triShape.modifiers[#Lathe].dir     = 2    -- 0=X 1=Y 2=Z
-	triShape.modifiers[#Lathe].weld    = true
+	-- Bolt tip boolean: subtract a 45-deg cone (apex at z=-r1, base radius r1 at z=0).
+	-- This carves a clean conical chamfer into the thread bottom without any spline/Lathe.
+	local tipCutter = cone radius1:0 radius2:r1 height:r1 sides:segs smooth:on pos:[0,0,-r1]
 
 	convertTo ep       (Editable_Mesh)
-	convertTo triShape (Editable_Mesh)
-	meshop.booleanDifference ep #{1..(getNumFaces ep)} triShape
-	delete triShape
+	convertTo tipCutter (Editable_Mesh)
+	meshop.booleanDifference ep #{1..(getNumFaces ep)} tipCutter
+	delete tipCutter
 
 	convertTo ep (Editable_Poly)
 	thr = ep
