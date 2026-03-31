@@ -461,12 +461,13 @@ fn createbolt boltpos wcol =
 		local tipFactor = (t + tipRunoutAngle) / tipRunoutAngle
 		if tipFactor < 0.0 then tipFactor = 0.0
 		if tipFactor > 1.0 then tipFactor = 1.0
-		-- Top taper: crest shrinks r2->r1 over the last full turn (fans out into neck stud)
+		-- Top runout amount over the last full turn. At the very top, the thread grooves should
+		-- fill outward into the cylinder instead of shrinking the crest inward.
 		local endFactor = ((turns*360.0) - t) / topRunoutAngle
 		if endFactor < 0.0 then endFactor = 0.0
 		if endFactor > 1.0 then endFactor = 1.0
-		local combinedFactor = if tipFactor < endFactor then tipFactor else endFactor
-		curR2 = r1 + (r2 - r1) * combinedFactor   -- tapered runout at tip and top
+		local topFill = 1.0 - endFactor
+		curR2 = r1 + (r2 - r1) * tipFactor   -- bottom tip runout only; crest stays full at top
 
 		-- Clamp all vertex Z to [-tipOffset, threadht]. Negative Z is the bottom cut/chamfer zone.
 		baseZ = d2*t/360.0
@@ -474,9 +475,9 @@ fn createbolt boltpos wcol =
 		v2z = baseZ+d1 ; if v2z < -tipOffset then v2z = -tipOffset ; if v2z > threadht then v2z = threadht
 		v3z = baseZ+d2 ; if v3z < -tipOffset then v3z = -tipOffset ; if v3z > threadht then v3z = threadht
 
-		local v1r = r1
+		local v1r = r1 + (r2 - r1) * topFill
 		local v2r = curR2
-		local v3r = r1
+		local v3r = r1 + (r2 - r1) * topFill
 		if v1z < 0 then v1r = amin v1r (r1 + v1z)
 		if v2z < 0 then v2r = amin v2r (r1 + v2z)
 		if v3z < 0 then v3r = amin v3r (r1 + v3z)
