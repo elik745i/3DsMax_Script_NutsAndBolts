@@ -499,13 +499,11 @@ fn createbolt boltpos wcol =
 	addmodifier ep (Cap_Holes ())
 	addmodifier ep (smooth autosmooth:on THRESHOLD:30)
 
-	-- Bolt tip: right-angle triangle spline lathed around Z, then boolean-subtracted from thread.
-	-- Right angle sits at [0,0,0] (center-bottom of bolt).
-	-- One leg goes radially outward to [r1,0,0]; one leg goes axially down to [0,0,-r1].
-	-- Lathing this 360° around Z produces a clean cone; subtracting it gives a 45-deg chamfered tip.
-	-- Conical bolt tip: attach cone (apex at z=-r1, base ring at z=0) to close thread bottom.
-	-- Cone segs matches bolt segs -> weld merges the shared z=0 ring cleanly. No boolean needed.
-	local tipCone = cone radius1:0 radius2:r1 height:r1 sides:segs smooth:on pos:[0,0,-r1]
+	-- Flat bottom + 45-deg chamfer on outer edge, scaled to thread OD.
+	-- Frustum: top ring radius=r1 at z=0 mates thread bottom, bottom ring = r1-chamDepth at z=-chamDepth.
+	-- Rise==run => exactly 45 deg. Cap_Holes closes the small flat bottom circle.
+	local chamDepth = r2 * 0.1
+	local tipCone = cone radius1:(r1-chamDepth) radius2:r1 height:chamDepth sides:segs smooth:on pos:[0,0,-chamDepth]
 	ep.EditablePoly.attach tipCone ep
 	ep.weldThreshold = weldThreshold
 	polyop.weldVertsByThreshold ep #{1..(getnumverts ep)}
