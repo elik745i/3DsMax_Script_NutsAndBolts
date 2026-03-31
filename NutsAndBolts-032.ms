@@ -382,9 +382,10 @@ fn createbolt boltpos wcol =
 		if p1.z < headht*0.02 and p2.z < headht*0.02 then append btmBits i
 	)
 	pcy.EditablePoly.SetSelection #Edge btmBits
-	pcy.EditablePoly.chamferEdges (20.0*hscale)
+	pcy.EditablePoly.chamferEdges (3.0*hscale)
 
 	-- Pass 2: Vertical hex corner edges (both verts at circumscribed radius, spans >15% of height)
+	-- Require min-z > 5% headht to skip the tiny connector stubs created by Pass 1.
 	local corrBits = #{}
 	ne = polyop.getNumEdges pcy
 	for i = 1 to ne do
@@ -393,7 +394,9 @@ fn createbolt boltpos wcol =
 		local p1 = polyop.getVert pcy ev[1] ; local p2 = polyop.getVert pcy ev[2]
 		local ra = sqrt(p1.x*p1.x + p1.y*p1.y)
 		local rb = sqrt(p2.x*p2.x + p2.y*p2.y)
-		if ra > (headdia/2)*0.92 and rb > (headdia/2)*0.92 and abs(p1.z - p2.z) > headht*0.15 then
+		if ra > (headdia/2)*0.92 and rb > (headdia/2)*0.92 \
+			and abs(p1.z - p2.z) > headht*0.15 \
+			and (min p1.z p2.z) > headht*0.05 then
 			append corrBits i
 	)
 	pcy.EditablePoly.SetSelection #Edge corrBits
