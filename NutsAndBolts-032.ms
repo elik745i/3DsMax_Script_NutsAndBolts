@@ -446,7 +446,7 @@ fn createbolt boltpos wcol =
 	turns = (threadht/threadpitch)
 	density = 360/segs
 	local tipRunoutAngle = 360.0  -- fan thread into the tip over the last full turn
-	local topRunoutAngle = 720.0  -- flatten minor diameter into the neck over the last two turns
+	local topRunoutAngle = 360.0  -- flatten minor diameter into the neck over the last one turn
 	local tipOffset = r2 * 0.08   -- slightly deeper flat cut based on bolt OD
 	local totalEndAngle = turns * 360.0
 	local effectiveTopEndAngle = amax -360.0 (totalEndAngle - density)
@@ -463,7 +463,7 @@ fn createbolt boltpos wcol =
 		local tipFactor = (t + tipRunoutAngle) / tipRunoutAngle
 		if tipFactor < 0.0 then tipFactor = 0.0
 		if tipFactor > 1.0 then tipFactor = 1.0
-		-- Top runout amount over the last two turns. Only the minor diameter fans outward
+		-- Top runout amount over the last one turn. Only the minor diameter fans outward
 		-- to the major diameter; the helical Z positions stay unchanged.
 		local endFactor = (effectiveTopEndAngle - t) / topRunoutAngle
 		if endFactor < 0.0 then endFactor = 0.0
