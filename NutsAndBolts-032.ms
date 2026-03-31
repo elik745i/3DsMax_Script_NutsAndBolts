@@ -503,15 +503,32 @@ fn createbolt boltpos wcol =
 	ep.EditablePoly.SelectEdgeLoop ()
 	ep.EditablePoly.chamferEdges threadchamfer
 
-	-- Build the bottom cap manually from the welded bottom ring so the tip face stays perfectly flat
-	-- and doesn't inherit uneven Cap_Holes triangulation artifacts.
+	-- Build the bottom cap manually from the actual bottom border so the tip face stays flat
+	-- and doesn't pick up duplicate clipped helix vertices.
 	local bottomPairs = #()
-	for i = 1 to (getnumverts ep) do
+	local tol = (weldThreshold * 10.0 + 0.0001)
+	for i = 1 to (polyop.getNumEdges ep) do
 	(
-		local p = polyop.getVert ep i
-		local vr = sqrt(p.x*p.x + p.y*p.y)
-		if abs(p.z + chamDepth) <= (weldThreshold * 10.0 + 0.0001) and vr > 0.0001 then
-			append bottomPairs #(i, atan2 p.y p.x)
+		local edgeFaces = polyop.getEdgeFaces ep i
+		if edgeFaces.numberset == 1 then
+		(
+			local ev = polyop.getEdgeVerts ep i
+			local p1 = polyop.getVert ep ev[1]
+			local p2 = polyop.getVert ep ev[2]
+			if abs(p1.z + chamDepth) <= tol and abs(p2.z + chamDepth) <= tol then
+			(
+				for v in ev do
+				(
+					local alreadyFound = false
+					for pair in bottomPairs while not alreadyFound do if pair[1] == v then alreadyFound = true
+					if not alreadyFound then
+					(
+						local p = polyop.getVert ep v
+						append bottomPairs #(v, atan2 p.y p.x)
+					)
+				)
+			)
+		)
 	)
 	if bottomPairs.count > 2 then
 	(
