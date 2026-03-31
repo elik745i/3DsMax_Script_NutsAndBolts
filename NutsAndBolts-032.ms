@@ -445,8 +445,7 @@ fn createbolt boltpos wcol =
 	d2 = threadpitch
 	turns = (threadht/threadpitch)+1
 	density = 360/segs
-	botTaperAngle = 18.0   -- bottom: matches cone height (0.05*pitch), thread starts immediately
-	topTaperAngle = 180.0  -- top: half-turn runout fins dissolving into neck stud
+	taperAngle = 180.0   -- taper thread crest over the first and last half-turn
 
 	ep = editable_mesh name:(uniquename "Thread")
 	convertTo ep (Editable_Poly)
@@ -457,16 +456,16 @@ fn createbolt boltpos wcol =
 	local firstIter = true
 	for t = -360 to turns*360 by density do
 	(
-		-- Bottom taper: crest grows r1->r2 over 18deg (matches cone stub height, no exposed fins)
-		tapFactor = (t as float) / botTaperAngle
+		-- Bottom taper: crest grows r1->r2 over the first half-turn
+		tapFactor = (t as float) / taperAngle
 		if tapFactor < 0.0 then tapFactor = 0.0
 		if tapFactor > 1.0 then tapFactor = 1.0
 		-- Top taper: crest shrinks r2->r1 over the last half-turn (dissolves into neck stud)
-		local endFactor = ((turns*360.0) - t) / topTaperAngle
+		local endFactor = ((turns*360.0) - t) / taperAngle
 		if endFactor < 0.0 then endFactor = 0.0
 		if endFactor > 1.0 then endFactor = 1.0
 		local combinedFactor = if tapFactor < endFactor then tapFactor else endFactor
-		curR2 = r1 + (r2 - r1) * combinedFactor   -- crest emerges cleanly at bottom, fins at top
+		curR2 = r1 + (r2 - r1) * combinedFactor   -- crest emerges and dissolves at both ends
 
 		-- Clamp all vertex Z to [0, threadht] for flat matching rings at both ends
 		baseZ = d2*t/360.0
