@@ -370,10 +370,9 @@ fn createbolt boltpos wcol =
 	hscale = headdia/100.0
 	
 	pcy = convertToPoly(cy)
-	-- All five chamfer passes use purely geometric edge selection so no hard-coded
-	-- face/edge indices are needed. Works regardless of Max version or head diameter.
+	-- Three clean geometric passes — no hard-coded indices, no overlapping selections.
 
-	-- 1. Bottom rim: horizontal edges at z ≈ 0
+	-- Pass 1: Bottom rim bevel (bearing face chamfer)
 	local btmBits = #{}
 	local ne = polyop.getNumEdges pcy
 	for i = 1 to ne do
@@ -383,41 +382,9 @@ fn createbolt boltpos wcol =
 		if p1.z < headht*0.02 and p2.z < headht*0.02 then append btmBits i
 	)
 	pcy.EditablePoly.SetSelection #Edge btmBits
-	pcy.EditablePoly.chamferEdges (3.0*hscale)
+	pcy.EditablePoly.chamferEdges (20.0*hscale)
 
-	-- 2. Waist ring: the outer horizontal ring created by the bottom chamfer.
-	--    It sits just above z=0 at the full circumradius — select it and double-chamfer.
-	local waistBits = #{}
-	ne = polyop.getNumEdges pcy
-	for i = 1 to ne do
-	(
-		local ev = polyop.getEdgeVerts pcy i
-		local p1 = polyop.getVert pcy ev[1] ; local p2 = polyop.getVert pcy ev[2]
-		local ra = sqrt(p1.x*p1.x + p1.y*p1.y)
-		local rb = sqrt(p2.x*p2.x + p2.y*p2.y)
-		if abs(p1.z - p2.z) < headht*0.01 and p1.z > headht*0.02 and p1.z < headht*0.60 \
-			and ra > (headdia/2)*0.90 and rb > (headdia/2)*0.90 then append waistBits i
-	)
-	pcy.EditablePoly.SetSelection #Edge waistBits
-	pcy.EditablePoly.chamferEdges (11.3*hscale)
-	pcy.EditablePoly.chamferEdges (6.3*hscale)
-
-	-- 3. Tighten: all horizontal side-face rings in the lower half (not the cap rims)
-	local tightyBits = #{}
-	ne = polyop.getNumEdges pcy
-	for i = 1 to ne do
-	(
-		local ev = polyop.getEdgeVerts pcy i
-		local p1 = polyop.getVert pcy ev[1] ; local p2 = polyop.getVert pcy ev[2]
-		local ra = sqrt(p1.x*p1.x + p1.y*p1.y)
-		local rb = sqrt(p2.x*p2.x + p2.y*p2.y)
-		if abs(p1.z - p2.z) < headht*0.01 and p1.z > headht*0.01 and p1.z < headht*0.95 \
-			and ra > (headdia/2)*0.50 and rb > (headdia/2)*0.50 then append tightyBits i
-	)
-	pcy.EditablePoly.SetSelection #Edge tightyBits
-	pcy.EditablePoly.chamferEdges (2.8*hscale)
-
-	-- 4. Vertical hex corners: both verts at circumscribed radius, significant z span
+	-- Pass 2: Vertical hex corner edges (both verts at circumscribed radius, spans >15% of height)
 	local corrBits = #{}
 	ne = polyop.getNumEdges pcy
 	for i = 1 to ne do
@@ -432,7 +399,7 @@ fn createbolt boltpos wcol =
 	pcy.EditablePoly.SetSelection #Edge corrBits
 	pcy.EditablePoly.chamferEdges (1.0*hscale)
 
-	-- 5. Top rim: both verts at z ≈ headht
+	-- Pass 3: Top rim (both verts at z ≈ headht)
 	local topBits = #{}
 	ne = polyop.getNumEdges pcy
 	for i = 1 to ne do
