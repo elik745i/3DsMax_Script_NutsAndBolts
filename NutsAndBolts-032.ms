@@ -515,7 +515,18 @@ fn createbolt boltpos wcol =
 	)
 	if bottomPairs.count > 2 then
 	(
-		qsort bottomPairs (fn a b = a[2] < b[2])
+		for i = 1 to (bottomPairs.count - 1) do
+		(
+			for j = i + 1 to bottomPairs.count do
+			(
+				if bottomPairs[j][2] < bottomPairs[i][2] then
+				(
+					local tmpPair = bottomPairs[i]
+					bottomPairs[i] = bottomPairs[j]
+					bottomPairs[j] = tmpPair
+				)
+			)
+		)
 		local centerVert = ep.createVertex [0,0,-chamDepth]
 		for i = 1 to bottomPairs.count do
 		(
