@@ -760,8 +760,8 @@ rollout NABRollout "Nuts & Bolts :: V 1.0.0"
 	groupBox group4 "Actions" 	pos:[5,5] width:170 height:200 	
 	button  btn1 "Create Nuts & Bolts"	pos:[10,25] width:160 height:40
 	checkbutton chkbolt "Bolt" pos:[10,80] width:120 checked:true tooltip:"Enables Bolts" highlightColor:[80,100,80]
-	checkbutton chknut  "Nut"  pos:[10,110] width:120 checked:true tooltip:"Enables Nuts" highlightColor:[80,100,80]
-	checkbutton chkwash  "Washer"  pos:[10,140] width:120 checked:true tooltip:"Enables Washers" highlightColor:[80,100,80]
+	checkbutton chknut  "Nut"  pos:[10,110] width:120 checked:false tooltip:"Enables Nuts" highlightColor:[80,100,80]
+	checkbutton chkwash  "Washer"  pos:[10,140] width:120 checked:false tooltip:"Enables Washers" highlightColor:[80,100,80]
 	checkbutton chkprev  "Preview"  pos:[10,170] width:120 checked:off tooltip:"Enables Preview" highlightColor:[80,100,80]
 	colorpicker cpbolt color: [200,210,220] width: 40 pos:[130,80]
 	colorpicker cpnut color: [160,180,220] width: 40 pos:[130,110]
