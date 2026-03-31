@@ -445,41 +445,43 @@ fn createbolt boltpos wcol =
 	d2 = threadpitch
 	turns = (threadht/threadpitch)+1
 	density = 360/segs
-	taperAngle = 180.0   -- taper thread crest over the first and last half-turn
+	taperAngle = 180.0   -- taper thread crest over the last half-turn into the neck
+	local chamDepth = r2 * 0.1
 
 	ep = editable_mesh name:(uniquename "Thread")
 	convertTo ep (Editable_Poly)
 
-	-- Start one full extra turn before z=0. Vertices there have crest clamped to r1 (root).
-	-- After welding they collapse into a clean flat ring at r1, z=0 — Cap_Holes fills it
-	-- as a tidy flat end disk matching the shaft diameter.
+	-- Start one full extra turn before the visible tip. The bottom is clipped to a 45-degree
+	-- chamfer profile, and the thread stays full-depth up to that cut so no plain stud is exposed.
 	local firstIter = true
 	for t = -360 to turns*360 by density do
 	(
-		-- Bottom taper: crest grows r1->r2 over the first half-turn
-		tapFactor = (t as float) / taperAngle
-		if tapFactor < 0.0 then tapFactor = 0.0
-		if tapFactor > 1.0 then tapFactor = 1.0
 		-- Top taper: crest shrinks r2->r1 over the last half-turn (dissolves into neck stud)
 		local endFactor = ((turns*360.0) - t) / taperAngle
 		if endFactor < 0.0 then endFactor = 0.0
 		if endFactor > 1.0 then endFactor = 1.0
-		local combinedFactor = if tapFactor < endFactor then tapFactor else endFactor
-		curR2 = r1 + (r2 - r1) * combinedFactor   -- crest emerges and dissolves at both ends
+		curR2 = r1 + (r2 - r1) * endFactor   -- full-depth thread at tip, tapered runout only at top
 
-		-- Clamp all vertex Z to [0, threadht] for flat matching rings at both ends
+		-- Clamp all vertex Z to [-chamDepth, threadht]. Negative Z is the bottom chamfer zone.
 		baseZ = d2*t/360.0
-		v1z = baseZ    ; if v1z < 0 then v1z = 0 ; if v1z > threadht then v1z = threadht
-		v2z = baseZ+d1 ; if v2z < 0 then v2z = 0 ; if v2z > threadht then v2z = threadht
-		v3z = baseZ+d2 ; if v3z < 0 then v3z = 0 ; if v3z > threadht then v3z = threadht
+		v1z = baseZ    ; if v1z < -chamDepth then v1z = -chamDepth ; if v1z > threadht then v1z = threadht
+		v2z = baseZ+d1 ; if v2z < -chamDepth then v2z = -chamDepth ; if v2z > threadht then v2z = threadht
+		v3z = baseZ+d2 ; if v3z < -chamDepth then v3z = -chamDepth ; if v3z > threadht then v3z = threadht
 
-		x  = r1 * cos(t)
-		y  = r1 * sin(t)
+		local v1r = r1
+		local v2r = curR2
+		local v3r = r1
+		if v1z < 0 then v1r = amin v1r (r1 + v1z)
+		if v2z < 0 then v2r = amin v2r (r1 + v2z)
+		if v3z < 0 then v3r = amin v3r (r1 + v3z)
+
+		x  = v1r * cos(t)
+		y  = v1r * sin(t)
 		v1 = ep.createVertex [x, y, v1z]
-		x2 = curR2 * cos(t)
-		y2 = curR2 * sin(t)
+		x2 = v2r * cos(t)
+		y2 = v2r * sin(t)
 		v2 = ep.createVertex [x2, y2, v2z]
-		v3 = ep.createVertex [r1 * cos(t), r1 * sin(t), v3z]
+		v3 = ep.createVertex [v3r * cos(t), v3r * sin(t), v3z]
 
 		if not firstIter then 
 		(
@@ -495,18 +497,6 @@ fn createbolt boltpos wcol =
 	ep.EditablePoly.SetSelection #Edge #{2}
 	ep.EditablePoly.SelectEdgeLoop ()
 	ep.EditablePoly.chamferEdges threadchamfer
-
-	addmodifier ep (Cap_Holes ())
-	addmodifier ep (smooth autosmooth:on THRESHOLD:30)
-
-	-- Flat bottom + 45-deg chamfer on outer edge, scaled to thread OD.
-	-- Frustum: top ring radius=r1 at z=0 mates thread bottom, bottom ring = r1-chamDepth at z=-chamDepth.
-	-- Rise==run => exactly 45 deg. Cap_Holes closes the small flat bottom circle.
-	local chamDepth = r2 * 0.1
-	local tipCone = cone radius1:(r1-chamDepth) radius2:r1 height:chamDepth sides:segs smooth:on pos:[0,0,-chamDepth]
-	ep.EditablePoly.attach tipCone ep
-	ep.weldThreshold = weldThreshold
-	polyop.weldVertsByThreshold ep #{1..(getnumverts ep)}
 
 	addmodifier ep (Cap_Holes ())
 	addmodifier ep (smooth autosmooth:on THRESHOLD:30)
