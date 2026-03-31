@@ -383,8 +383,19 @@ fn createbolt boltpos wcol =
 	pcy.EditablePoly.chamferEdges (2.8*hscale)
 	pcy.EditablePoly.SetSelection #Edge #{2, 4, 6, 9, 12, 15}
 	pcy.EditablePoly.chamferEdges (1.0*hscale)
-	pcy.EditablePoly.SetSelection #Face #{1}
-	pcy.EditablePoly.ConvertSelection #Face #Edge
+	-- Select top rim edges geometrically: both vertices at z >= 99% of headht.
+	-- Avoids face-index brittleness — intermediate chamfers renumber faces unpredictably.
+	local topEdgeBits = #{}
+	local nEdges = polyop.getNumEdges pcy
+	for i = 1 to nEdges do
+	(
+		local ev = polyop.getEdgeVerts pcy i
+		local p1 = polyop.getVert pcy ev[1]
+		local p2 = polyop.getVert pcy ev[2]
+		if p1.z > (headht * 0.99) and p2.z > (headht * 0.99) then
+			append topEdgeBits i
+	)
+	pcy.EditablePoly.SetSelection #Edge topEdgeBits
 	pcy.EditablePoly.chamferEdges (1.0*hscale)
 	facecount = pcy.EditablePoly.getnumfaces()
 	pcy.EditablePoly.SetSelection #Face #{1..facecount}
