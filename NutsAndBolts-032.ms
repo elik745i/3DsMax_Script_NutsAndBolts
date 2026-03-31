@@ -503,16 +503,16 @@ fn createbolt boltpos wcol =
 	-- Right angle sits at [0,0,0] (center-bottom of bolt).
 	-- One leg goes radially outward to [r1,0,0]; one leg goes axially down to [0,0,-r1].
 	-- Lathing this 360° around Z produces a clean cone; subtracting it gives a 45-deg chamfered tip.
-	-- Bolt tip boolean: subtract a 45-deg cone (apex at z=-r1, base radius r1 at z=0).
-	-- This carves a clean conical chamfer into the thread bottom without any spline/Lathe.
-	local tipCutter = cone radius1:0 radius2:r1 height:r1 sides:segs smooth:on pos:[0,0,-r1]
+	-- Conical bolt tip: attach cone (apex at z=-r1, base ring at z=0) to close thread bottom.
+	-- Cone segs matches bolt segs -> weld merges the shared z=0 ring cleanly. No boolean needed.
+	local tipCone = cone radius1:0 radius2:r1 height:r1 sides:segs smooth:on pos:[0,0,-r1]
+	ep.EditablePoly.attach tipCone ep
+	ep.weldThreshold = weldThreshold
+	polyop.weldVertsByThreshold ep #{1..(getnumverts ep)}
 
-	convertTo ep       (Editable_Mesh)
-	convertTo tipCutter (Editable_Mesh)
-	meshop.booleanDifference ep #{1..(getNumFaces ep)} tipCutter
-	delete tipCutter
-
-	convertTo ep (Editable_Poly)
+	addmodifier ep (Cap_Holes ())
+	addmodifier ep (smooth autosmooth:on THRESHOLD:30)
+	convertTo ep PolyMeshObject
 	thr = ep
 
 	if nothreadht > 0 then
