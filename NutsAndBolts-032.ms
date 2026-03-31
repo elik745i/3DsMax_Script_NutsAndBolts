@@ -496,17 +496,34 @@ fn createbolt boltpos wcol =
 	ep.EditablePoly.SelectEdgeLoop ()
 	ep.EditablePoly.chamferEdges threadchamfer
 
-	-- Chamfer tip via cone primitive: radius1 (base) = r1*0.7, radius2 (top) = r1 at z=0.
-	-- Top ring matches thread bottom ring exactly -> welds cleanly, no edge-selection artifacts.
-	local tipHeight = threadpitch * 0.05
-	local tipCone = cone radius1:(r1*0.85) radius2:r1 height:tipHeight sides:segs smooth:on pos:[0,0,-tipHeight]
-	ep.EditablePoly.attach tipCone ep
-	ep.weldThreshold = weldThreshold
-	polyop.weldVertsByThreshold ep #{1..(getnumverts ep)}
-
 	addmodifier ep (Cap_Holes ())
 	addmodifier ep (smooth autosmooth:on THRESHOLD:30)
-	convertTo ep PolyMeshObject
+
+	-- Bolt tip: right-angle triangle spline lathed around Z, then boolean-subtracted from thread.
+	-- Right angle sits at [0,0,0] (center-bottom of bolt).
+	-- One leg goes radially outward to [r1,0,0]; one leg goes axially down to [0,0,-r1].
+	-- Lathing this 360° around Z produces a clean cone; subtracting it gives a 45-deg chamfered tip.
+	local triShape = splineShape name:(uniquename "TipCutter")
+	addNewSpline triShape
+	addKnot triShape 1 #corner #line [0,  0,  0]
+	addKnot triShape 1 #corner #line [r1, 0,  0]
+	addKnot triShape 1 #corner #line [0,  0, -r1]
+	close triShape 1
+	updateShape triShape
+
+	addModifier triShape (Lathe())
+	triShape.modifiers[#Lathe].segs      = segs
+	triShape.modifiers[#Lathe].degrees   = 360
+	triShape.modifiers[#Lathe].direction = 2    -- Z axis
+	triShape.modifiers[#Lathe].align     = 0    -- 0 = min: axis at leftmost X = 0
+	triShape.modifiers[#Lathe].weld      = true
+
+	convertTo ep       (Editable_Mesh)
+	convertTo triShape (Editable_Mesh)
+	meshop.booleanDifference ep #{1..(getNumFaces ep)} triShape
+	delete triShape
+
+	convertTo ep (Editable_Poly)
 	thr = ep
 
 	if nothreadht > 0 then
