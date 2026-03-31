@@ -515,7 +515,7 @@ fn createbolt boltpos wcol =
 
 	if nothreadht > 0 then
 	(
-		local neckChamfer = amin threaddepth nothreadht
+		local neckChamfer = amin threadpitch nothreadht
 		local neckBottomRadius = r2 - neckChamfer
 		if neckBottomRadius < r1 then neckBottomRadius = r1
 
