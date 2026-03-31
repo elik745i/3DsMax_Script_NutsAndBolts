@@ -498,7 +498,7 @@ fn createbolt boltpos wcol =
 
 	-- Chamfer tip via cone primitive: radius1 (base) = r1*0.7, radius2 (top) = r1 at z=0.
 	-- Top ring matches thread bottom ring exactly -> welds cleanly, no edge-selection artifacts.
-	local tipHeight = threadpitch * 0.1
+	local tipHeight = threadpitch * 0.05
 	local tipCone = cone radius1:(r1*0.85) radius2:r1 height:tipHeight sides:segs smooth:on pos:[0,0,-tipHeight]
 	ep.EditablePoly.attach tipCone ep
 	ep.weldThreshold = weldThreshold
