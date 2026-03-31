@@ -394,9 +394,8 @@ fn createbolt boltpos wcol =
 		local p1 = polyop.getVert pcy ev[1] ; local p2 = polyop.getVert pcy ev[2]
 		local ra = sqrt(p1.x*p1.x + p1.y*p1.y)
 		local rb = sqrt(p2.x*p2.x + p2.y*p2.y)
-		if ra > (headdia/2)*0.92 and rb > (headdia/2)*0.92 \
-			and abs(p1.z - p2.z) > headht*0.15 \
-			and (min p1.z p2.z) > headht*0.05 then
+		local minZ = if p1.z < p2.z then p1.z else p2.z
+		if ra > (headdia/2)*0.92 and rb > (headdia/2)*0.92 and abs(p1.z - p2.z) > headht*0.15 and minZ > headht*0.05 then
 			append corrBits i
 	)
 	pcy.EditablePoly.SetSelection #Edge corrBits
